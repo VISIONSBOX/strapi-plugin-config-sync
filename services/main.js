@@ -22,6 +22,9 @@ module.exports = {
     const shouldExclude = strapi.plugins['config-sync'].config.exclude.includes(`${configType}.${configName}`);
     if (shouldExclude) return;
 
+    // Replace ':' with '#' in filenames for Windows support.
+    configName = configName.replace(/:/g, "#");
+    
     // Check if the JSON content should be minified. 
     const json = 
       !strapi.plugins['config-sync'].config.minify ? 
@@ -55,6 +58,9 @@ module.exports = {
     const shouldExclude = strapi.plugins['config-sync'].config.exclude.includes(`${configName}`);
     if (shouldExclude) return;
 
+    // Replace ':' with '#' in filenames for Windows support.
+    configName = configName.replace(/:/g, "#");
+    
     fs.unlinkSync(`${strapi.plugins['config-sync'].config.destination}${configName}.json`);
   },
 
@@ -66,6 +72,9 @@ module.exports = {
    * @returns {object} The JSON content of the config file.
    */
   readConfigFile: async (configType, configName) => {
+    // Replace ':' with '#' in filenames for Windows support.
+    configName = configName.replace(/:/g, "#");
+    
     const readFile = util.promisify(fs.readFile);
     return await readFile(`${strapi.plugins['config-sync'].config.destination}${configType}.${configName}.json`)
       .then((data) => {
@@ -95,7 +104,10 @@ module.exports = {
       await Promise.all(configFiles.map(async (file) => {
         const type = file.split('.')[0]; // Grab the first part of the filename.
         const name = file.split(/\.(.+)/)[1].split('.').slice(0, -1).join('.'); // Grab the rest of the filename minus the file extension.
-
+        
+        // Replace ':' with '#' in filenames for Windows support.
+        const formattedName = name.replace(/#/g, ":");
+        
         if (
           configType && configType !== type ||
           !strapi.plugins['config-sync'].config.include.includes(type) ||
@@ -105,7 +117,7 @@ module.exports = {
         }
 
         const fileContents = await strapi.plugins['config-sync'].services.main.readConfigFile(type, name);
-        fileConfigs[`${type}.${name}`] = fileContents;
+        fileConfigs[`${type}.${formattedName}`] = fileContents;
       }));
 
       return fileConfigs;
